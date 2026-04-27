@@ -4,6 +4,7 @@
 #include "nemu.h"
 
 #include <stdlib.h>
+#include <inttypes.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
@@ -88,20 +89,58 @@ static int cmd_info(char *args)
     return 0;
   }
 
-  char *subcmd = strtok(args, " ");
-  if (subcmd != NULL && strcmp(subcmd, "r") == 0)
+  char *start = args;
+  while (*start == ' ')
+  {
+    start++;
+  }
+  char *end = start + strlen(start);
+  while (end > start && end[-1] == ' ')
+  {
+    end--;
+  }
+  *end = '\0';
+
+  if (strcmp(start, "r") == 0)
   {
     print_regs();
     return 0;
   }
 
-  if (subcmd != NULL && strcmp(subcmd, "w") == 0)
+  if (strcmp(start, "w") == 0)
   {
     printf("Watchpoints are not implemented in phase 1.\n");
     return 0;
   }
 
-  printf("Unknown info command '%s'\n", subcmd == NULL ? "" : subcmd);
+  bool success = false;
+  uint32_t value = expr(start, &success);
+  if (!success)
+  {
+    printf("Bad expression: %s\n", start);
+    return 0;
+  }
+  printf("%" PRIu32 " (0x%08" PRIx32 ")\n", value, value);
+  return 0;
+}
+
+static int cmd_p(char *args)
+{
+  if (args == NULL)
+  {
+    printf("Usage: p EXPR\n");
+    return 0;
+  }
+
+  bool success = false;
+  uint32_t value = expr(args, &success);
+  if (!success)
+  {
+    printf("Bad expression: %s\n", args);
+    return 0;
+  }
+
+  printf("%" PRIu32 " (0x%08" PRIx32 ")\n", value, value);
   return 0;
 }
 
@@ -113,34 +152,29 @@ static int cmd_x(char *args)
     return 0;
   }
 
-  char *n_str = strtok(args, " ");
-  char *expr_str = strtok(NULL, " ");
-
-  if (n_str == NULL || expr_str == NULL)
+  char *endptr = NULL;
+  unsigned long count = strtoul(args, &endptr, 10);
+  if (endptr == args)
   {
     printf("Usage: x N EXPR\n");
     return 0;
   }
 
-  char *n_end = NULL;
-  unsigned long count = strtoul(n_str, &n_end, 10);
-  if (n_end == n_str || *n_end != '\0')
+  while (*endptr == ' ')
   {
-    printf("Invalid N: %s\n", n_str);
+    endptr++;
+  }
+  if (*endptr == '\0')
+  {
+    printf("Usage: x N EXPR\n");
     return 0;
   }
 
-  if (!(expr_str[0] == '0' && (expr_str[1] == 'x' || expr_str[1] == 'X')))
+  bool success = false;
+  vaddr_t addr = expr(endptr, &success);
+  if (!success)
   {
-    printf("For PA1 stage 1, EXPR only supports hex literal (e.g. 0x100000).\n");
-    return 0;
-  }
-
-  char *expr_end = NULL;
-  vaddr_t addr = (vaddr_t)strtoul(expr_str, &expr_end, 16);
-  if (expr_end == expr_str || *expr_end != '\0')
-  {
-    printf("Invalid EXPR: %s\n", expr_str);
+    printf("Bad expression: %s\n", endptr);
     return 0;
   }
 
@@ -167,6 +201,7 @@ static struct
     {"c", "Continue the execution of the program", cmd_c},
     {"si", "Single step execution", cmd_si},
     {"info", "Print register information", cmd_info},
+    {"p", "Evaluate expression", cmd_p},
     {"x", "Scan memory", cmd_x},
     {"q", "Exit NEMU", cmd_q},
 
