@@ -43,6 +43,20 @@ make_rtl_arith_logic(sar)
 make_rtl_arith_logic(slt)
 make_rtl_arith_logic(sltu)
 
+static inline void rtl_ror(rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
+  uint32_t src2eff = *src2 % (width * 8);
+  uint32_t partlow = ((*src1 & (((uint32_t)(0xFFFFFFFF) >> (32 - width * 8)) >> (width * 8 - src2eff))) << (width * 8 - src2eff));
+  uint32_t partup = ((*src1 & ((((uint32_t)(0xFFFFFFFF) >> (32 - width * 8)) >> (src2eff)) << src2eff)) >> (src2eff));
+  *dest = partlow | partup;
+}
+
+static inline void rtl_rol(rtlreg_t* dest, const rtlreg_t* src1, const rtlreg_t* src2, int width) {
+  uint32_t src2eff = *src2 % (width * 8);
+  uint32_t partlow = ((*src1 & (((uint32_t)(0xFFFFFFFF) >> (32 - width * 8)) >> src2eff)) << (src2eff));
+  uint32_t partup = ((*src1 & ((((uint32_t)(0xFFFFFFFF) >> (32 - width * 8)) >> (width * 8 - src2eff) << (width * 8 - src2eff)))) >> (width * 8 - src2eff));
+  *dest = partlow | partup;
+}
+
 static inline void rtl_mul(rtlreg_t* dest_hi, rtlreg_t* dest_lo, const rtlreg_t* src1, const rtlreg_t* src2) {
   asm volatile("mul %3" : "=d"(*dest_hi), "=a"(*dest_lo) : "a"(*src1), "r"(*src2));
 }
@@ -113,10 +127,10 @@ static inline void rtl_sr(int r, int width, const rtlreg_t* src1) {
 
 #define make_rtl_setget_eflags(f) \
   static inline void concat(rtl_set_, f) (const rtlreg_t* src) { \
-    TODO(); \
+    cpu.flags.f = *src; \
   } \
   static inline void concat(rtl_get_, f) (rtlreg_t* dest) { \
-    TODO(); \
+    *dest = cpu.flags.f; \
   }
 
 make_rtl_setget_eflags(CF)
@@ -125,60 +139,49 @@ make_rtl_setget_eflags(ZF)
 make_rtl_setget_eflags(SF)
 
 static inline void rtl_mv(rtlreg_t* dest, const rtlreg_t *src1) {
-  // dest <- src1
-  TODO();
+  *dest = *src1;
 }
 
 static inline void rtl_not(rtlreg_t* dest) {
-  // dest <- ~dest
-  TODO();
+  *dest = ~(*dest);
 }
 
 static inline void rtl_sext(rtlreg_t* dest, const rtlreg_t* src1, int width) {
-  // dest <- signext(src1[(width * 8 - 1) .. 0])
-  TODO();
+  *dest = ((((int32_t)(*src1)) << (8 * (4 - width))) >> (8 * (4 - width)));
 }
 
 static inline void rtl_push(const rtlreg_t* src1) {
-  // esp <- esp - 4
-  // M[esp] <- src1
-  TODO();
+  cpu.esp -= 4;
+  vaddr_write(cpu.esp, 4, *src1);
 }
 
 static inline void rtl_pop(rtlreg_t* dest) {
-  // dest <- M[esp]
-  // esp <- esp + 4
-  TODO();
+  *dest = vaddr_read(cpu.esp, 4);
+  cpu.esp += 4;
 }
 
 static inline void rtl_eq0(rtlreg_t* dest, const rtlreg_t* src1) {
-  // dest <- (src1 == 0 ? 1 : 0)
-  TODO();
+  *dest = (*src1 == 0 ? 1 : 0);
 }
 
 static inline void rtl_eqi(rtlreg_t* dest, const rtlreg_t* src1, int imm) {
-  // dest <- (src1 == imm ? 1 : 0)
-  TODO();
+  *dest = (*src1 == imm ? 1 : 0);
 }
 
 static inline void rtl_neq0(rtlreg_t* dest, const rtlreg_t* src1) {
-  // dest <- (src1 != 0 ? 1 : 0)
-  TODO();
+  *dest = (*src1 != 0 ? 1 : 0);
 }
 
 static inline void rtl_msb(rtlreg_t* dest, const rtlreg_t* src1, int width) {
-  // dest <- src1[width * 8 - 1]
-  TODO();
+  *dest = ((*src1 & (1 << (width * 8 - 1))) != 0);
 }
 
 static inline void rtl_update_ZF(const rtlreg_t* result, int width) {
-  // eflags.ZF <- is_zero(result[width * 8 - 1 .. 0])
-  TODO();
+  cpu.flags.ZF = ((*result & (0xFFFFFFFF >> ((4 - width) * 8))) == 0);
 }
 
 static inline void rtl_update_SF(const rtlreg_t* result, int width) {
-  // eflags.SF <- is_sign(result[width * 8 - 1 .. 0])
-  TODO();
+  cpu.flags.SF = (((*result & (0xFFFFFFFF >> ((4 - width) * 8))) & (1 << (width * 8 - 1))) != 0);
 }
 
 static inline void rtl_update_ZFSF(const rtlreg_t* result, int width) {
