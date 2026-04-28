@@ -9,6 +9,10 @@
 #include <readline/history.h>
 
 void cpu_exec(uint64_t);
+bool wp_add(const char *expr_str);
+bool wp_delete(int no);
+bool wp_check(void);
+void wp_list(void);
 
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 char *rl_gets()
@@ -33,7 +37,14 @@ char *rl_gets()
 
 static int cmd_c(char *args)
 {
-  cpu_exec(-1);
+  while (nemu_state != NEMU_END)
+  {
+    cpu_exec(1);
+    if (wp_check())
+    {
+      break;
+    }
+  }
   return 0;
 }
 
@@ -57,7 +68,18 @@ static int cmd_si(char *args)
     }
   }
 
-  cpu_exec(n);
+  for (; n > 0; n--)
+  {
+    cpu_exec(1);
+    if (wp_check())
+    {
+      break;
+    }
+    if (nemu_state == NEMU_END)
+    {
+      break;
+    }
+  }
   return 0;
 }
 
@@ -109,7 +131,7 @@ static int cmd_info(char *args)
 
   if (strcmp(start, "w") == 0)
   {
-    printf("Watchpoints are not implemented in phase 1.\n");
+    wp_list();
     return 0;
   }
 
@@ -189,6 +211,44 @@ static int cmd_x(char *args)
   return 0;
 }
 
+static int cmd_w(char *args)
+{
+  if (args == NULL)
+  {
+    printf("Usage: w EXPR\n");
+    return 0;
+  }
+
+  if (!wp_add(args))
+  {
+    printf("Failed to set watchpoint: %s\n", args);
+  }
+  return 0;
+}
+
+static int cmd_d(char *args)
+{
+  if (args == NULL)
+  {
+    printf("Usage: d N\n");
+    return 0;
+  }
+
+  char *endptr = NULL;
+  long no = strtol(args, &endptr, 10);
+  if (endptr == args)
+  {
+    printf("Usage: d N\n");
+    return 0;
+  }
+
+  if (!wp_delete((int)no))
+  {
+    printf("No watchpoint %ld\n", no);
+  }
+  return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct
@@ -202,6 +262,8 @@ static struct
     {"si", "Single step execution", cmd_si},
     {"info", "Print register information", cmd_info},
     {"p", "Evaluate expression", cmd_p},
+    {"w", "Set watchpoint", cmd_w},
+    {"d", "Delete watchpoint", cmd_d},
     {"x", "Scan memory", cmd_x},
     {"q", "Exit NEMU", cmd_q},
 
