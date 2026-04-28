@@ -3,7 +3,7 @@
 
 #include "nemu.h"
 
-extern rtlreg_t t0, t1, t2, t3;
+extern rtlreg_t t0, t1, t2, t3, s0, s1;
 extern const rtlreg_t tzero;
 
 /* RTL basic instructions */
@@ -143,27 +143,14 @@ static inline void rtl_sr(int r, int width, const rtlreg_t *src1)
   }
 }
 
-#define EFLAGS_CF 0
-#define EFLAGS_ZF 6
-#define EFLAGS_SF 7
-#define EFLAGS_OF 11
-
 #define make_rtl_setget_eflags(f)                             \
   static inline void concat(rtl_set_, f)(const rtlreg_t *src) \
   {                                                           \
-    const uint32_t mask = 1u << concat(EFLAGS_, f);           \
-    if ((*src) & 0x1)                                         \
-    {                                                         \
-      cpu.eflags |= mask;                                     \
-    }                                                         \
-    else                                                      \
-    {                                                         \
-      cpu.eflags &= ~mask;                                    \
-    }                                                         \
+    cpu.eflags.f = *src;                                      \
   }                                                           \
   static inline void concat(rtl_get_, f)(rtlreg_t * dest)     \
   {                                                           \
-    *dest = (cpu.eflags >> concat(EFLAGS_, f)) & 0x1;         \
+    *dest = cpu.eflags.f;                                     \
   }
 
 make_rtl_setget_eflags(CF)
@@ -276,6 +263,50 @@ static inline void rtl_update_ZFSF(const rtlreg_t *result, int width)
 {
   rtl_update_ZF(result, width);
   rtl_update_SF(result, width);
+}
+
+static inline void rtl_is_sub_overthrow(rtlreg_t *dest, const rtlreg_t *arith_res, const rtlreg_t *src1, const rtlreg_t *src2, int width)
+{
+  t2 = (*src1 >> (width * 8 - 1)) == 1 ? 1 : 0;
+  t3 = (*src2 >> (width * 8 - 1)) == 1 ? 1 : 0;
+  s0 = (*arith_res >> (width * 8 - 1)) == 1 ? 1 : 0;
+  if (t2 ^ t3)
+  {
+    if (t2 ^ s0)
+    {
+      *dest = 1;
+    }
+    else
+    {
+      *dest = 0;
+    }
+  }
+  else
+  {
+    *dest = 0;
+  }
+}
+
+static inline void rtl_is_add_overthrow(rtlreg_t *dest, const rtlreg_t *arith_res, const rtlreg_t *src1, const rtlreg_t *src2, int width)
+{
+  t2 = (*src1 >> (width * 8 - 1)) == 1 ? 1 : 0;
+  t3 = (*src2 >> (width * 8 - 1)) == 1 ? 1 : 0;
+  s0 = (*arith_res >> (width * 8 - 1)) == 1 ? 1 : 0;
+  if (!(t2 ^ t3))
+  {
+    if (t2 ^ s0)
+    {
+      *dest = 1;
+    }
+    else
+    {
+      *dest = 0;
+    }
+  }
+  else
+  {
+    *dest = 0;
+  }
 }
 
 #endif
