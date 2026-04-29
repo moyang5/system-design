@@ -6,7 +6,7 @@ make_EHelper(mov) {
 }
 
 make_EHelper(push) {
-  t0 = id_dest->val;
+  rtl_mv(&t0, &id_dest->val);
   rtl_push(&t0);
   print_asm_template1(push);
 }
@@ -18,64 +18,65 @@ make_EHelper(pop) {
 }
 
 make_EHelper(pusha) {
-  t1 = cpu.esp;
-  t0 = cpu.eax;
+  rtl_lr_l(&t1, R_ESP);
+  rtl_lr_l(&t0, R_EAX);
   rtl_push(&t0);
-  t0 = cpu.ecx;
+  rtl_lr_l(&t0, R_ECX);
   rtl_push(&t0);
-  t0 = cpu.edx;
+  rtl_lr_l(&t0, R_EDX);
   rtl_push(&t0);
-  t0 = cpu.ebx;
+  rtl_lr_l(&t0, R_EBX);
   rtl_push(&t0);
   rtl_push(&t1);
-  t0 = cpu.ebp;
+  rtl_lr_l(&t0, R_EBP);
   rtl_push(&t0);
-  t0 = cpu.esi;
+  rtl_lr_l(&t0, R_ESI);
   rtl_push(&t0);
-  t0 = cpu.edi;
+  rtl_lr_l(&t0, R_EDI);
   rtl_push(&t0);
   print_asm("pusha");
 }
 
 make_EHelper(popa) {
   rtl_pop(&t0);
-  cpu.edi = t0;
+  rtl_sr_l(R_EDI, &t0);
   rtl_pop(&t0);
-  cpu.esi = t0;
+  rtl_sr_l(R_ESI, &t0);
   rtl_pop(&t0);
-  cpu.ebp = t0;
+  rtl_sr_l(R_EBP, &t0);
   rtl_pop(&t0); // throw esp
   rtl_pop(&t0);
-  cpu.ebx = t0;
+  rtl_sr_l(R_EBX, &t0);
   rtl_pop(&t0);
-  cpu.edx = t0;
+  rtl_sr_l(R_EDX, &t0);
   rtl_pop(&t0);
-  cpu.ecx = t0;
+  rtl_sr_l(R_ECX, &t0);
   rtl_pop(&t0);
-  cpu.eax = t0;
+  rtl_sr_l(R_EAX, &t0);
   print_asm("popa");
 }
 
 make_EHelper(leave) {
-  reg_l(4) = reg_l(5);
+  rtl_lr_l(&t0, R_EBP);
+  rtl_sr_l(R_ESP, &t0);
   rtl_pop(&t0);
-  reg_w(5) = t0;
+  rtl_sr_w(R_BP, &t0);
   
   print_asm("leave");
 }
 
 make_EHelper(cltd) {
   if (decoding.is_operand_size_16) {
-    if(reg_w(0) < 0)
-        reg_w(2) = 0xFFFF;
-    else
-        reg_w(2) = 0;
+    rtl_lr_w(&t0, R_AX);
+    rtl_msb(&t1, &t0, 2);
+    rtl_sub(&t0, &tzero, &t1);
+    rtl_sr_w(R_DX, &t0);
   }
   else {
-    if(reg_l(0) < 0)
-        reg_l(2) = 0xFFFFFFFF;
-    else
-        reg_l(2) = 0;
+    rtl_lr_l(&t0, R_EAX);
+    rtl_msb(&t1, &t0, 4);
+    rtl_sub(&t0, &tzero, &t1);
+    rtl_sr_l(R_EDX, &t0);
   }
 
   print_asm(decoding.is_operand_size_16 ? "cwtl" : "cltd");
@@ -83,14 +84,14 @@ make_EHelper(cltd) {
 
 make_EHelper(cwtl) {
   if (decoding.is_operand_size_16) {
-    t1 = reg_b(0);
+    rtl_lr_b(&t1, R_AL);
     rtl_sext(&t0, &t1, 1);
-    reg_w(0) = t0;
+    rtl_sr_w(R_AX, &t0);
   }
   else {
-    t1 = reg_w(0);
+    rtl_lr_w(&t1, R_AX);
     rtl_sext(&t0, &t1, 2);
-    reg_l(0) = t0;
+    rtl_sr_l(R_EAX, &t0);
   }
 
   print_asm(decoding.is_operand_size_16 ? "cbtw" : "cwtl");

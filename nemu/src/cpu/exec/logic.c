@@ -36,9 +36,8 @@ make_EHelper(or) {
 }
 
 make_EHelper(sar) {
-  int32_t tempint = id_dest->val;
-  tempint = ((tempint << (8 * (4 - id_dest->width))) >> (8 * (4 - id_dest->width)));
-  rtl_sar(&t0, (uint32_t*)(&tempint), &id_src->val);
+  rtl_sext(&t3, &id_dest->val, id_dest->width);
+  rtl_sar(&t0, &t3, &id_src->val);
   // unnecessary to update CF and OF in NEMU
   // here we leave CF and OF unchanged
   rtl_update_ZFSF(&t0, id_dest->width);
@@ -90,7 +89,7 @@ make_EHelper(setcc) {
 }
 
 make_EHelper(not) {
-  t0 = id_dest->val;
+  rtl_mv(&t0, &id_dest->val);
   rtl_not(&t0);
   operand_write(id_dest, &t0);
   print_asm_template1(not);

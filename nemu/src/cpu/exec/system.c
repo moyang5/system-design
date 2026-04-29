@@ -45,7 +45,7 @@ uint32_t pio_read(ioaddr_t, int);
 void pio_write(ioaddr_t, int, uint32_t);
 
 make_EHelper(in) {
-  t0 = pio_read(id_src->val, id_dest->width);
+  rtl_li(&t0, pio_read(id_src->val, id_dest->width));
   rtl_sr(R_EAX, id_dest->width, &t0);
   
   print_asm_template2(in);
@@ -56,7 +56,7 @@ make_EHelper(in) {
 }
 
 make_EHelper(out) {
-  t0 = 0;
+  rtl_li(&t0, 0);
   rtl_sr(R_EAX, id_dest->width, &t0);
   pio_write(id_dest->val, id_src->width, id_src->val);
   

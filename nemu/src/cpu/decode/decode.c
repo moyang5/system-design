@@ -207,7 +207,7 @@ make_DHelper(SI2E) {
   id_src->width = 1;
   decode_op_SI(eip, id_src, true);
   if (id_dest->width == 2) {
-    id_src->val &= 0xffff;
+    rtl_andi(&id_src->val, &id_src->val, 0xffff);
   }
 }
 
@@ -217,7 +217,7 @@ make_DHelper(SI_E2G) {
   id_src->width = 1;
   decode_op_SI(eip, id_src, true);
   if (id_dest->width == 2) {
-    id_src->val &= 0xffff;
+    rtl_andi(&id_src->val, &id_src->val, 0xffff);
   }
 }
 
