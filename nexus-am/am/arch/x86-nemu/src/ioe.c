@@ -6,12 +6,20 @@
 #define KEY_STATUS 0x64
 static unsigned long boot_time;
 
+static inline uint32_t rtc_read32() {
+  uint32_t b0 = inb(RTC_PORT + 0);
+  uint32_t b1 = inb(RTC_PORT + 1);
+  uint32_t b2 = inb(RTC_PORT + 2);
+  uint32_t b3 = inb(RTC_PORT + 3);
+  return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
+}
+
 void _ioe_init() {
-  boot_time = inl(RTC_PORT);
+  boot_time = rtc_read32();
 }
 
 unsigned long _uptime() {
-  return inl(RTC_PORT) - boot_time;
+  return rtc_read32() - boot_time;
 }
 
 uint32_t* const fb = (uint32_t *)0x40000;

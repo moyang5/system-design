@@ -14,12 +14,11 @@ void timer_intr() {
 static uint32_t *rtc_port_base;
 
 void rtc_io_handler(ioaddr_t addr, int len, bool is_write) {
-  if (!is_write) {
+  if (!is_write && addr == RTC_PORT) {
     struct timeval now;
     gettimeofday(&now, NULL);
-    uint32_t seconds = now.tv_sec;
-    uint32_t useconds = now.tv_usec;
-    rtc_port_base[0] = seconds * 1000 + (useconds + 500) / 1000;
+    uint64_t ms = (uint64_t)now.tv_sec * 1000 + (uint64_t)(now.tv_usec + 500) / 1000;
+    rtc_port_base[0] = (uint32_t)ms;
   }
 }
 
