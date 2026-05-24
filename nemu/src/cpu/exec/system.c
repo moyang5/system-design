@@ -5,7 +5,9 @@ void diff_test_skip_nemu();
 
 make_EHelper(lidt)
 {
-    TODO();
+    vaddr_t addr = id_dest->addr;
+    cpu.idtr.limit = vaddr_read(addr, 2);
+    cpu.idtr.base = vaddr_read(addr + 2, 4);
     print_asm_template1(lidt);
 }
 
@@ -29,7 +31,8 @@ make_EHelper(mov_cr2r)
 
 make_EHelper(int)
 {
-    TODO();
+    uint8_t intr_no = id_dest->val & 0xff;
+    raise_intr(intr_no, decoding.seq_eip);
     print_asm("int %s", id_dest->str);
 
 #ifdef DIFF_TEST

@@ -46,6 +46,12 @@ enum
 
 typedef struct
 {
+  struct
+  {
+    uint16_t limit;
+    uint32_t base;
+  } idtr;
+
   union
   {
     union
@@ -66,6 +72,7 @@ typedef struct
   };
 
   vaddr_t eip;
+  uint16_t cs;
 
   union
   {
@@ -85,6 +92,8 @@ typedef struct
   } eflags;
 
 } CPU_state;
+
+#define flags eflags
 
 extern CPU_state cpu;
 
