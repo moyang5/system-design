@@ -2,7 +2,12 @@
 
 #define DEFAULT_ENTRY ((void *)0x4000000)
 
-uintptr_t loader(_Protect *as, const char *filename) {
-  TODO();
+uintptr_t loader(_Protect *as, const char *filename)
+{
+  (void)as;
+  (void)filename;
+
+  size_t size = get_ramdisk_size();
+  ramdisk_read(DEFAULT_ENTRY, 0, size);
   return (uintptr_t)DEFAULT_ENTRY;
 }
