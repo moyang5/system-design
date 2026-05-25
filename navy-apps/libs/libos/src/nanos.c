@@ -1,10 +1,15 @@
 #include <unistd.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <assert.h>
 #include <time.h>
 #include "syscall.h"
+
+#ifndef S_IFCHR
+#define S_IFCHR 0020000
+#endif
 
 // TODO: discuss with syscall interface
 #ifndef __ISA_NATIVE__
@@ -35,6 +40,32 @@ int _write(int fd, void *buf, size_t count)
 
 void *_sbrk(intptr_t increment)
 {
+  extern char _end;
+  static uintptr_t program_break = 0;
+  if (program_break == 0)
+  {
+    program_break = (uintptr_t)&_end;
+  }
+
+  uintptr_t old_break = program_break;
+  intptr_t new_break_signed = (intptr_t)program_break + increment;
+  uintptr_t new_break = (uintptr_t)new_break_signed;
+  int r = _syscall_(SYS_brk, new_break, 0, 0);
+#ifdef SBRK_DEBUG
+  char dbg[96];
+  int n = sprintf(dbg, "_sbrk inc=%ld old=0x%lx new=0x%lx r=%d\n",
+                  (long)increment, (unsigned long)old_break,
+                  (unsigned long)new_break, r);
+  if (n > 0)
+  {
+    _syscall_(SYS_write, 1, (uintptr_t)dbg, (uintptr_t)n);
+  }
+#endif
+  if (r == 0)
+  {
+    program_break = new_break;
+    return (void *)old_break;
+  }
   return (void *)-1;
 }
 
@@ -59,7 +90,16 @@ off_t _lseek(int fd, off_t offset, int whence)
 // not implement but used
 int _fstat(int fd, struct stat *buf)
 {
-  return 0;
+  if (buf == NULL)
+  {
+    return -1;
+  }
+  if (fd == 0 || fd == 1 || fd == 2)
+  {
+    buf->st_mode = S_IFCHR;
+    return 0;
+  }
+  return -1;
 }
 
 int execve(const char *fname, char *const argv[], char *const envp[])
