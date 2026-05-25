@@ -2,6 +2,7 @@
 #define __REG_H__
 
 #include "common.h"
+#include "memory/mmu.h"
 
 enum
 {
@@ -73,6 +74,8 @@ typedef struct
 
   vaddr_t eip;
   uint16_t cs;
+  CR0 cr0;
+  CR3 cr3;
 
   union
   {
