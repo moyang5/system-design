@@ -32,7 +32,8 @@ int main()
 
   init_fs();
 
-  load_prog(NULL);
-
-  panic("Should not reach here");
+  load_prog("/bin/pal");
+  load_prog("/bin/hello");
+  _trap();
+  panic("should not reach here");
 }

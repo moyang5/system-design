@@ -6,9 +6,11 @@
 
 #define STACK_SIZE (8 * PGSIZE)
 
-typedef union {
+typedef union
+{
   uint8_t stack[STACK_SIZE] PG_ALIGN;
-  struct {
+  struct
+  {
     _RegSet *tf;
     _Protect as;
     uintptr_t cur_brk;
@@ -18,5 +20,7 @@ typedef union {
 } PCB;
 
 extern PCB *current;
+
+_RegSet *schedule(_RegSet *prev);
 
 #endif
