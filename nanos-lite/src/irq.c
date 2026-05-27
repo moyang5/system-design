@@ -12,6 +12,7 @@ static _RegSet *do_event(_Event e, _RegSet *r)
   case _EVENT_TRAP:
     return schedule(r);
   case _EVENT_IRQ_TIME:
+    Log("Received clock interrupt, switching process...");
     return schedule(r);
   case _EVENT_ERROR:
     return r;

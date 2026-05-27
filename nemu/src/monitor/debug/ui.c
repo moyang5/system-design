@@ -37,14 +37,7 @@ char *rl_gets()
 
 static int cmd_c(char *args)
 {
-  while (nemu_state != NEMU_END)
-  {
-    cpu_exec(1);
-    if (wp_check())
-    {
-      break;
-    }
-  }
+  cpu_exec(-1);
   return 0;
 }
 

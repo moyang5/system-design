@@ -100,7 +100,7 @@ _RegSet *_umake(_Protect *p, _Area ustack, _Area kstack, void *entry, char *cons
   uint32_t *ptr = ustack.end;
   for (int i = 0; i < 8; i++)
     *ptr-- = 0x0;
-  *ptr-- = 0x2;  // eflags
+  *ptr-- = 0x202; // eflags (IF=1)
   *ptr-- = 0x8;  // cs
   *ptr-- = (uint32_t)entry;  // eip
   *ptr-- = 0x0;  // error code

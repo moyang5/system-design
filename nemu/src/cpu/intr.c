@@ -10,6 +10,7 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr)
 
   t = cpu.eflags.val;
   rtl_push(&t);
+  cpu.eflags.IF = 0;
 
   t = cpu.cs;
   rtl_push(&t);
@@ -30,13 +31,5 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr)
 
 void dev_raise_intr()
 {
-  if (!cpu.eflags.IF)
-  {
-    return;
-    if (!cpu.eflags.IF)
-    {
-      return;
-    }
-  }
-  raise_intr(0x20, cpu.eip);
+  cpu.INTR = true;
 }
