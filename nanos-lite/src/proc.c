@@ -23,6 +23,10 @@ void load_prog(const char *filename)
   pcb[i].tf = _umake(&pcb[i].as, stack, stack, (void *)entry, NULL, NULL);
 }
 
+// PAL(仙剑)和hello的调度频率比例
+// 每SCHED_RATIO次调度中,hello只运行1次,其余时间运行PAL
+#define SCHED_RATIO 1000
+
 _RegSet *schedule(_RegSet *prev)
 {
   if (current == NULL)
@@ -33,9 +37,13 @@ _RegSet *schedule(_RegSet *prev)
   {
     current->tf = prev;
     count++;
-    if (count % 100 == 0)
+    if (count % SCHED_RATIO == 0)
     {
-      current = (current == &pcb[0] ? &pcb[1] : &pcb[0]);
+      current = &pcb[1];  // hello
+    }
+    else
+    {
+      current = &pcb[0];  // PAL
     }
   }
   _switch(&current->as);
