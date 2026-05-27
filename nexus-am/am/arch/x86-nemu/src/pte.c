@@ -76,30 +76,19 @@ void _switch(_Protect *p)
 
 void _map(_Protect *p, void *va, void *pa)
 {
-  assert(((uintptr_t)va & (PGSIZE - 1)) == 0);
-  assert(((uintptr_t)pa & (PGSIZE - 1)) == 0);
-
-  PDE *pdir = (PDE *)p->ptr;
-  uint32_t pdir_idx = PDX(va);
-  uint32_t ptab_idx = PTX(va);
-
-  PTE *ptab = NULL;
-  if ((pdir[pdir_idx] & PTE_P) == 0)
+  PDE *pgdir = p->ptr;
+  PDE *pde = &(pgdir[PDX(va)]);
+  PTE *ptdir;
+  if (*pde & PTE_P)
   {
-    ptab = (PTE *)palloc_f();
-    assert(ptab != NULL);
-    for (int i = 0; i < NR_PTE; i++)
-    {
-      ptab[i] = 0;
-    }
-    pdir[pdir_idx] = (uintptr_t)ptab | PTE_P | PTE_W | PTE_U;
+    ptdir = (PTE *)PTE_ADDR(*pde);
   }
   else
   {
-    ptab = (PTE *)PTE_ADDR(pdir[pdir_idx]);
+    ptdir = (PTE *)palloc_f();
+    *pde = PTE_ADDR(ptdir) | PTE_P;
   }
-
-  ptab[ptab_idx] = (uintptr_t)pa | PTE_P | PTE_W | PTE_U;
+  ptdir[PTX(va)] = PTE_ADDR(pa) | PTE_P;
 }
 
 void _unmap(_Protect *p, void *va)
@@ -108,15 +97,16 @@ void _unmap(_Protect *p, void *va)
 
 _RegSet *_umake(_Protect *p, _Area ustack, _Area kstack, void *entry, char *const argv[], char *const envp[])
 {
-  (void)p;
-  (void)argv;
-  (void)envp;
-
-  _RegSet *tf = (_RegSet *)kstack.end - 1;
-  memset(tf, 0, sizeof(_RegSet));
-  tf->eip = (uintptr_t)entry;
-  tf->cs = KSEL(SEG_KCODE);
-  tf->eflags = 0x2;
-  tf->esp = (uintptr_t)ustack.end;
-  return tf;
+  uint32_t *ptr = ustack.end;
+  for (int i = 0; i < 8; i++)
+    *ptr-- = 0x0;
+  *ptr-- = 0x2;  // eflags
+  *ptr-- = 0x8;  // cs
+  *ptr-- = (uint32_t)entry;  // eip
+  *ptr-- = 0x0;  // error code
+  *ptr-- = 0x81; // irq id
+  for (int i = 0; i < 8; i++)
+    *ptr-- = 0x0;
+  ptr++;
+  return (_RegSet *)ptr;
 }

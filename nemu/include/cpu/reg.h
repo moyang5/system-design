@@ -83,7 +83,9 @@ typedef struct
     struct
     {
       uint32_t CF : 1;
-      unsigned : 5;
+      unsigned : 1;
+      uint32_t PF : 1;
+      unsigned : 3;
       uint32_t ZF : 1;
       uint32_t SF : 1;
       unsigned : 1;

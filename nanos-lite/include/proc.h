@@ -4,7 +4,7 @@
 #include "common.h"
 #include "memory.h"
 
-#define STACK_SIZE (8 * PGSIZE)
+#define STACK_SIZE (32 * PGSIZE)
 
 typedef union
 {

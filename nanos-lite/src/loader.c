@@ -2,37 +2,22 @@
 #include "fs.h"
 #include "memory.h"
 
-#define DEFAULT_ENTRY ((void *)0x4000000)
+#define DEFAULT_ENTRY ((void *)0x8048000)
 
 uintptr_t loader(_Protect *as, const char *filename)
 {
-  if (filename == NULL)
-  {
-    filename = "/bin/hello";
-  }
-
   int fd = fs_open(filename, 0, 0);
-  size_t size = fs_filesz(fd);
-  if (as == NULL)
+  int size = fs_filesz(fd);
+  void *pa, *va = DEFAULT_ENTRY;
+  Log("filename=%s, fd=%d", filename, fd);
+  while (size > 0)
   {
-    size_t read_size = fs_read(fd, DEFAULT_ENTRY, size);
-    assert(read_size == size);
-    fs_close(fd);
-    return (uintptr_t)DEFAULT_ENTRY;
-  }
-
-  size_t remain = size;
-  uintptr_t va = (uintptr_t)DEFAULT_ENTRY;
-  while (remain > 0)
-  {
-    void *pa = new_page();
-    _map(as, (void *)va, pa);
-    memset(pa, 0, PGSIZE);
-    size_t chunk = remain > PGSIZE ? PGSIZE : remain;
-    size_t read_size = fs_read(fd, pa, chunk);
-    assert(read_size == chunk);
+    pa = new_page();
+    _map(as, va, pa);
+    size_t len = size >= PGSIZE ? PGSIZE : size;
+    fs_read(fd, pa, len);
     va += PGSIZE;
-    remain -= chunk;
+    size -= PGSIZE;
   }
   fs_close(fd);
   return (uintptr_t)DEFAULT_ENTRY;

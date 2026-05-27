@@ -17,45 +17,29 @@ static inline bool paging_enabled(void)
   return cpu.cr0.protect_enable && cpu.cr0.paging;
 }
 
-static inline paddr_t page_translate(vaddr_t addr, bool is_write)
+#define PDX(va)     (((uint32_t)(va) >> 22) & 0x3ff)
+#define PTX(va)     (((uint32_t)(va) >> 12) & 0x3ff)
+#define OFF(va)     ((uint32_t)(va) & 0xfff)
+#define PTE_ADDR(pte)    ((uint32_t)(pte) & ~0xfff)
+
+static inline paddr_t page_translate(vaddr_t addr, bool write)
 {
-  uint32_t dir_idx = addr >> 22;
-  uint32_t tbl_idx = (addr >> 12) & 0x3ff;
-  uint32_t offset = addr & PAGE_MASK;
-
-  paddr_t pdir_base = cpu.cr3.page_directory_base << 12;
-  paddr_t pde_addr = pdir_base + dir_idx * 4;
-  PDE pde;
-  pde.val = paddr_read(pde_addr, 4);
-  assert(pde.present);
-  if (!pde.accessed)
+  PDE pde, *pgdir;
+  PTE pte, *ptdir;
+  if (cpu.cr0.protect_enable && cpu.cr0.paging)
   {
+    pgdir = (PDE *)(PTE_ADDR(cpu.cr3.val));
+    pde.val = paddr_read((paddr_t)&pgdir[PDX(addr)], 4);
+    Assert(pde.present, "PDE not present: vaddr=0x%08x pde.val=0x%08x", addr, pde.val);
     pde.accessed = 1;
-    paddr_write(pde_addr, 4, pde.val);
-  }
-
-  paddr_t pte_base = pde.page_frame << 12;
-  paddr_t pte_addr = pte_base + tbl_idx * 4;
-  PTE pte;
-  pte.val = paddr_read(pte_addr, 4);
-  assert(pte.present);
-  bool pte_changed = false;
-  if (!pte.accessed)
-  {
+    ptdir = (PTE *)(PTE_ADDR(pde.val));
+    pte.val = paddr_read((paddr_t)&ptdir[PTX(addr)], 4);
+    Assert(pte.present, "ptdir:%p, pte.val: 0x%x, addr: 0x%x", ptdir, pte.val, addr);
     pte.accessed = 1;
-    pte_changed = true;
+    pte.dirty = write ? 1 : pte.dirty;
+    return PTE_ADDR(pte.val) | OFF(addr);
   }
-  if (is_write && !pte.dirty)
-  {
-    pte.dirty = 1;
-    pte_changed = true;
-  }
-  if (pte_changed)
-  {
-    paddr_write(pte_addr, 4, pte.val);
-  }
-
-  return (pte.page_frame << 12) | offset;
+  return addr;
 }
 
 uint32_t paddr_read(paddr_t addr, int len)

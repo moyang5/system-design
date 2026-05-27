@@ -2,6 +2,8 @@
 #include "syscall.h"
 #include "fs.h"
 
+int mm_brk(uint32_t new_brk);
+
 _RegSet *do_syscall(_RegSet *r)
 {
   uintptr_t a[4];
@@ -32,7 +34,7 @@ _RegSet *do_syscall(_RegSet *r)
     ret = fs_lseek((int)a[1], (off_t)a[2], (int)a[3]);
     break;
   case SYS_brk:
-    ret = 0;
+    ret = mm_brk((uint32_t)a[1]);
     break;
   case SYS_exit:
     _halt((int)a[1]);

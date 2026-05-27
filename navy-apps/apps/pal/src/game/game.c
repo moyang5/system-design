@@ -23,8 +23,7 @@
 
 static VOID
 PAL_GameStart(
-   VOID
-)
+    VOID)
 /*++
   Purpose:
 
@@ -54,10 +53,8 @@ PAL_GameStart(
    gpGlobals->dwFrameNum = 0;
 }
 
-VOID
-PAL_GameMain(
-   VOID
-)
+VOID PAL_GameMain(
+    VOID)
 /*++
   Purpose:
 
@@ -73,7 +70,7 @@ PAL_GameMain(
 
 --*/
 {
-   DWORD       dwTime;
+   DWORD dwTime;
 
    //
    // Show the opening menu.
@@ -100,7 +97,6 @@ PAL_GameMain(
          PAL_GameStart();
          gpGlobals->fGameStart = FALSE;
       }
-
 
       //
       // Load the game resources if needed.
@@ -132,6 +128,5 @@ PAL_GameMain(
       // Run the main frame routine.
       //
       PAL_StartFrame();
-
    }
 }

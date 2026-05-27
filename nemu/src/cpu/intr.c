@@ -30,4 +30,13 @@ void raise_intr(uint8_t NO, vaddr_t ret_addr)
 
 void dev_raise_intr()
 {
+  if (!cpu.eflags.IF)
+  {
+    return;
+    if (!cpu.eflags.IF)
+    {
+      return;
+    }
+  }
+  raise_intr(0x20, cpu.eip);
 }
