@@ -20,6 +20,7 @@ typedef union
 } PCB;
 
 extern PCB *current;
+extern PCB *current_game;
 
 _RegSet *schedule(_RegSet *prev);
 

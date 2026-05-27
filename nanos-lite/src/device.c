@@ -1,4 +1,5 @@
 #include "common.h"
+#include "proc.h"
 
 #define NAME(key) \
   [_KEY_##key] = #key,
@@ -24,6 +25,14 @@ size_t events_read(void *buf, size_t len)
     {
       bool is_down = (key & 0x8000) != 0;
       key &= 0x7fff;
+
+      if (key == _KEY_F12 && is_down)
+      {
+        extern void toggle_game(void);
+        toggle_game();
+        continue;
+      }
+
       const char *name = keyname[key];
       size_t pos = 0;
       const char *prefix = is_down ? "kd " : "ku ";
